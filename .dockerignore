@@ -1,0 +1,17 @@
+# PDFs are large and not needed at runtime — only results.csv matters
+input_history/pdfs/
+
+# Dev / local tooling
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+
+# Unused legacy scripts
+generate_data.py
+lottery_calculator.py
+historical_data.csv
+scoring_approach.md
+README.md

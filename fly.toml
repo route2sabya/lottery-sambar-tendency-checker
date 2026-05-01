@@ -1,0 +1,22 @@
+# fly.toml — Lottery Sambad Tendency Checker
+# Deploy: fly deploy
+# Logs:   fly logs
+# SSH:    fly ssh console
+
+app            = "lottery-sambad-checker"
+primary_region = "bom"          # Mumbai — closest to India
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port       = 8080
+  force_https         = true
+  auto_stop_machines  = "stop"  # sleep when idle → stays in free tier
+  auto_start_machines = true    # wake on first request (~3-5s cold start)
+  min_machines_running = 0
+
+[[vm]]
+  cpu_kind  = "shared"
+  cpus      = 1
+  memory_mb = 512

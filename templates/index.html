@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lottery Sambad — Tendency Checker</title>
+<style>
+  :root {
+    --bg:       #0f1117;
+    --card:     #1a1d27;
+    --border:   #2a2d3e;
+    --accent:   #6c63ff;
+    --hot:      #f59e0b;
+    --warm:     #10b981;
+    --cold:     #ef4444;
+    --neutral:  #6b7280;
+    --text:     #e2e8f0;
+    --muted:    #94a3b8;
+    --radius:   12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0 20px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -.5px; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+
+  /* ── Layout ── */
+  main { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+
+  /* ── Search card ── */
+  .search-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .search-card input {
+    flex: 1; min-width: 180px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    color: var(--text); font-size: 1.1rem; letter-spacing: 2px;
+    outline: none; transition: border-color .2s;
+  }
+  .search-card input:focus { border-color: var(--accent); }
+  .search-card input::placeholder { letter-spacing: 0; color: var(--muted); font-size: .95rem; }
+  .search-card button {
+    background: var(--accent); border: none; border-radius: 8px;
+    color: #fff; font-size: 1rem; font-weight: 600;
+    padding: 12px 28px; cursor: pointer; transition: opacity .2s;
+  }
+  .search-card button:hover { opacity: .85; }
+  .search-card button:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Error banner ── */
+  .error-msg {
+    background: #2d1b1b; border: 1px solid #7f1d1d;
+    border-radius: 8px; color: #fca5a5;
+    padding: 12px 16px; margin-top: 16px; display: none;
+  }
+
+  /* ── Results grid ── */
+  #results { margin-top: 28px; display: none; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:600px){ .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ── Card base ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .card h3 {
+    font-size: .8rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); margin-bottom: 14px;
+  }
+
+  /* ── Score gauge ── */
+  .score-card { text-align: center; padding: 28px 20px; }
+  .gauge-wrap { position: relative; display: inline-block; }
+  svg.gauge { overflow: visible; }
+  .score-number {
+    font-size: 3rem; font-weight: 800; line-height: 1;
+  }
+  .score-label { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+  .score-baseline { font-size: .75rem; color: var(--neutral); margin-top: 2px; }
+
+  /* ── Component bars ── */
+  .comp-row { margin-bottom: 14px; }
+  .comp-row:last-child { margin-bottom: 0; }
+  .comp-header {
+    display: flex; justify-content: space-between;
+    font-size: .85rem; margin-bottom: 6px;
+  }
+  .comp-name { color: var(--muted); }
+  .comp-val  { font-weight: 600; }
+  .bar-track {
+    background: var(--bg); border-radius: 4px; height: 8px;
+    position: relative; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width .6s cubic-bezier(.4,0,.2,1);
+  }
+  .bar-mid {
+    position: absolute; left: 50%; top: 0;
+    width: 1px; height: 100%; background: var(--border);
+  }
+
+  /* ── Digit heatmap ── */
+  .digit-grid {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  }
+  .digit-cell {
+    border-radius: 10px; padding: 14px 10px;
+    text-align: center; width: 72px; border: 1px solid var(--border);
+  }
+  .digit-cell.hot     { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.4); }
+  .digit-cell.warm    { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.4); }
+  .digit-cell.cold    { background: rgba(239,68,68,.12);  border-color: rgba(239,68,68,.4); }
+  .digit-cell.neutral { background: rgba(107,114,128,.08); }
+  .digit-cell .pos-label { font-size: .65rem; color: var(--muted); margin-bottom: 4px; }
+  .digit-cell .digit-num { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+  .digit-cell.hot     .digit-num { color: var(--hot); }
+  .digit-cell.warm    .digit-num { color: var(--warm); }
+  .digit-cell.cold    .digit-num { color: var(--cold); }
+  .digit-cell .delta  { font-size: .72rem; margin-top: 4px; }
+  .digit-cell.hot     .delta { color: var(--hot); }
+  .digit-cell.warm    .delta { color: var(--warm); }
+  .digit-cell.cold    .delta { color: var(--cold); }
+  .digit-cell.neutral .delta { color: var(--neutral); }
+  .digit-cell .status-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; }
+
+  /* ── Stats row ── */
+  .stats-row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 90px; }
+  .stat-val { font-size: 1.5rem; font-weight: 700; }
+  .stat-key { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── Prize table ── */
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  th { text-align: left; color: var(--muted); font-weight: 500;
+       padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px; border-bottom: 1px solid #1e2130; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block; border-radius: 4px; padding: 2px 8px;
+    font-size: .75rem; font-weight: 600;
+  }
+  .badge-1 { background:#7c3aed22; color:#a78bfa; }
+  .badge-2 { background:#0284c722; color:#38bdf8; }
+  .badge-3 { background:#05966922; color:#34d399; }
+  .badge-4 { background:#d9770622; color:#fb923c; }
+  .badge-5 { background:#be185d22; color:#f472b6; }
+
+  /* ── History list ── */
+  .history-list { max-height: 260px; overflow-y: auto; }
+  .history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid #1e2130;
+    font-size: .83rem;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .h-date  { color: var(--muted); min-width: 90px; }
+  .h-time  { color: var(--muted); min-width: 72px; }
+  .h-prize { flex: 1; }
+
+  /* ── Hot numbers ── */
+  #hot-section { margin-top: 28px; }
+  .hot-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+  }
+  .hot-chip {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px;
+    font-size: .85rem; cursor: pointer;
+    transition: border-color .15s, background .15s;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .hot-chip:hover { border-color: var(--accent); background: #22263a; }
+  .hot-chip .cn  { font-size: 1rem; font-weight: 700; letter-spacing: 1px; }
+  .hot-chip .cs  { font-size: .7rem; color: var(--muted); }
+
+  /* ── Disclaimer ── */
+  .disclaimer {
+    margin-top: 32px;
+    background: #1a1d27; border: 1px solid #2a2d3e;
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius); padding: 14px 16px;
+    font-size: .8rem; color: var(--muted); line-height: 1.6;
+  }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid #ffffff44;
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin .6s linear infinite; display: inline-block;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Ad zones ── */
+
+  /* Top leaderboard: full-width strip between header and main content.
+     Replace the inner div with your AdSense <ins> tag. */
+  .ad-top {
+    background: #12151f;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100px; padding: 8px 0;
+  }
+
+  /* Bottom leaderboard: full-width strip after the disclaimer. */
+  .ad-bottom {
+    background: #12151f;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100px; padding: 8px 0; margin-top: 0;
+  }
+
+  /* Left / right side rails: fixed to viewport edges.
+     Only visible when viewport is wide enough that they
+     cannot overlap the 860px content column (threshold: 1220px).
+     Each rail is 160px wide; (1220-860)/2 = 180px clearance on each side. */
+  .ad-rail {
+    display: none;
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 160px;
+    z-index: 10;
+  }
+  .ad-rail-left  { left: calc(50% - 430px - 180px); }  /* 430 = half content + 20px gap */
+  .ad-rail-right { right: calc(50% - 430px - 180px); }
+  @media (min-width: 1220px) {
+    .ad-rail { display: block; }
+  }
+
+  /* Shared placeholder skin — swap for real ad markup when ready */
+  .ad-placeholder {
+    border: 1px dashed #3a3d50;
+    border-radius: 8px;
+    background: #13162080;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px; color: #4a5068;
+    font-size: .72rem; letter-spacing: .5px; text-transform: uppercase;
+    user-select: none;
+  }
+  .ad-placeholder svg { opacity: .35; }
+  .ad-top    .ad-placeholder { width: 728px; max-width: 100%; height: 90px; }
+  .ad-bottom .ad-placeholder { width: 728px; max-width: 100%; height: 90px; }
+  .ad-rail   .ad-placeholder { width: 160px; height: 600px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lottery Sambad <span>Tendency Checker</span></h1>
+  <p id="statsLine">Evidence-based scoring · loading stats…</p>
+</header>
+
+<!-- AD ZONE 1 · Top Leaderboard (728×90) ─────────────────────────────────
+     Replace .ad-placeholder with your AdSense <ins class="adsbygoogle"> tag.
+     ──────────────────────────────────────────────────────────────────────── -->
+<div class="ad-top">
+  <div class="ad-placeholder">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 014 0v2M13 7V5a2 2 0 014 0v2"/>
+    </svg>
+    Ad · 728 × 90 · Leaderboard
+  </div>
+</div>
+
+<!-- AD ZONE 2 & 3 · Side Rails (160×600) ────────────────────────────────
+     Visible only on viewports ≥ 1220 px wide (never overlaps content).
+     ──────────────────────────────────────────────────────────────────────── -->
+<div class="ad-rail ad-rail-left">
+  <div class="ad-placeholder">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="7" width="20" height="10" rx="2"/>
+    </svg>
+    Ad<br>160×600<br>Left Rail
+  </div>
+</div>
+<div class="ad-rail ad-rail-right">
+  <div class="ad-placeholder">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="7" width="20" height="10" rx="2"/>
+    </svg>
+    Ad<br>160×600<br>Right Rail
+  </div>
+</div>
+
+<main>
+
+  <!-- Search -->
+  <div class="search-card">
+    <input id="numInput" type="text" maxlength="8"
+           placeholder="4/5 digits or series+5digit (e.g. 83K90495)"
+           oninput="this.value=this.value.toUpperCase()"
+           onkeydown="if(event.key==='Enter')analyse()">
+    <button id="analyseBtn" onclick="analyse()">Analyse</button>
+  </div>
+  <div class="error-msg" id="errMsg"></div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Row 1: gauge + components -->
+    <div class="grid-2" style="margin-top:0">
+
+      <!-- Gauge -->
+      <div class="card score-card" id="gaugeCard">
+        <h3>Tendency Score</h3>
+        <div class="gauge-wrap">
+          <svg class="gauge" width="200" height="120" viewBox="0 0 200 120">
+            <!-- background arc -->
+            <path id="arcBg" stroke="#2a2d3e" stroke-width="14"
+                  fill="none" stroke-linecap="round"/>
+            <!-- value arc -->
+            <path id="arcFill" stroke="#6c63ff" stroke-width="14"
+                  fill="none" stroke-linecap="round"
+                  style="transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1),stroke .4s"/>
+          </svg>
+          <div style="position:absolute;top:52px;left:0;right:0;text-align:center">
+            <div class="score-number" id="scoreNum">—</div>
+            <div class="score-label" id="scoreLabel">—</div>
+          </div>
+        </div>
+        <div class="score-baseline">Baseline (average) = 100</div>
+      </div>
+
+      <!-- Component bars -->
+      <div class="card">
+        <h3>Score Breakdown</h3>
+        <div class="comp-row">
+          <div class="comp-header">
+            <span class="comp-name" id="lDigit">Digit Hotness</span>
+            <span class="comp-val" id="cDigit">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-mid"></div>
+            <div class="bar-fill" id="bDigit" style="width:0%"></div></div>
+        </div>
+        <div class="comp-row">
+          <div class="comp-header">
+            <span class="comp-name" id="lDecay">Recency Frequency</span>
+            <span class="comp-val" id="cDecay">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-mid"></div>
+            <div class="bar-fill" id="bDecay" style="width:0%"></div></div>
+        </div>
+        <div class="comp-row">
+          <div class="comp-header">
+            <span class="comp-name" id="lTier">Historical Frequency</span>
+            <span class="comp-val" id="cTier">—</span>
+          </div>
+          <div class="bar-track"><div class="bar-mid"></div>
+            <div class="bar-fill" id="bTier" style="width:0%"></div></div>
+        </div>
+        <div style="margin-top:18px" class="stats-row">
+          <div class="stat">
+            <div class="stat-val" id="sAppear">—</div>
+            <div class="stat-key" id="kAppear">Times drawn</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" id="sLast">—</div>
+            <div class="stat-key">Last seen</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" id="sGap">—</div>
+            <div class="stat-key">Sessions ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: digit heatmap -->
+    <div class="card" style="margin-top:16px">
+      <h3>Digit Position Analysis</h3>
+      <div class="digit-grid" id="digitGrid"></div>
+    </div>
+
+    <!-- Row 3: per-prize + history -->
+    <div class="grid-2" style="margin-top:16px">
+
+      <div class="card">
+        <h3 id="prizeTableTitle">Per-Prize Breakdown</h3>
+        <table>
+          <thead><tr id="prizeTableHead"><th>Prize</th><th>Score</th><th>Digit</th><th>Recency</th><th>Freq</th></tr></thead>
+          <tbody id="prizeTable"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3 id="histTitle">Recent Appearances</h3>
+        <div class="history-list" id="histList">
+          <p style="color:var(--muted);font-size:.85rem">No appearances found.</p>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /results -->
+
+  <!-- Hot numbers widget -->
+  <div id="hot-section">
+    <div class="card">
+      <h3 style="margin-bottom:10px">Currently Hot Numbers (5th Prize)</h3>
+      <div class="hot-grid" id="hotGrid">
+        <span style="color:var(--muted);font-size:.85rem">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Important:</strong> This tool analyses historical frequency patterns in
+    Lottery Sambad draws (Jun 2025 – Apr 2026). A higher score means a number has
+    appeared more often than average in the past — it does <em>not</em> guarantee
+    future wins. Lottery draws are designed to be random, and past performance
+    is not a reliable predictor of future outcomes. Play responsibly.
+  </div>
+
+</main>
+
+<!-- AD ZONE 4 · Bottom Leaderboard (728×90) ─────────────────────────────
+     Replace .ad-placeholder with your AdSense <ins class="adsbygoogle"> tag.
+     ──────────────────────────────────────────────────────────────────────── -->
+<div class="ad-bottom">
+  <div class="ad-placeholder">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="2" y="7" width="20" height="10" rx="2"/><path d="M7 7V5a2 2 0 014 0v2M13 7V5a2 2 0 014 0v2"/>
+    </svg>
+    Ad · 728 × 90 · Leaderboard
+  </div>
+</div>
+
+<script>
+// ── Gauge drawing ────────────────────────────────────────────────────────────
+const R = 80, CX = 100, CY = 100;
+const START_ANG = Math.PI * 0.8, END_ANG = Math.PI * 2.2;
+const ARC_LEN   = (END_ANG - START_ANG) * R;
+
+function polarXY(ang) {
+  return [CX + R * Math.cos(ang), CY + R * Math.sin(ang)];
+}
+function arcPath(a1, a2) {
+  const [x1,y1] = polarXY(a1), [x2,y2] = polarXY(a2);
+  const large = (a2 - a1) > Math.PI ? 1 : 0;
+  return `M ${x1} ${y1} A ${R} ${R} 0 ${large} 1 ${x2} ${y2}`;
+}
+
+document.getElementById('arcBg').setAttribute('d', arcPath(START_ANG, END_ANG));
+
+function updateGauge(score) {
+  // score 0-300, 100 = average; map 0-200 to arc
+  const clamped = Math.min(200, Math.max(0, score));
+  const frac    = clamped / 200;
+  const fillEnd = START_ANG + frac * (END_ANG - START_ANG);
+  const arc     = document.getElementById('arcFill');
+  arc.setAttribute('d', arcPath(START_ANG, fillEnd));
+
+  const color = score >= 150 ? '#f59e0b'
+              : score >= 115 ? '#10b981'
+              : score >= 85  ? '#6c63ff'
+              : score >= 60  ? '#f97316'
+              :                '#ef4444';
+  arc.style.stroke = color;
+
+  document.getElementById('scoreNum').textContent  = score;
+  document.getElementById('scoreNum').style.color  = color;
+  document.getElementById('scoreLabel').textContent =
+    score >= 150 ? '🔥 Hot'
+    : score >= 115 ? '↑ Above average'
+    : score >= 85  ? '→ Average'
+    : score >= 60  ? '↓ Below average'
+    :                '❄ Cold';
+}
+
+// ── Bar fill ─────────────────────────────────────────────────────────────────
+function setBar(barId, ratio) {
+  // ratio 0-3+; map to 0-100% width, 50% = baseline (ratio=1.0)
+  const pct = Math.min(100, Math.max(0, ratio / 2 * 100));
+  const el  = document.getElementById(barId);
+  el.style.width = pct + '%';
+  const color = ratio >= 1.5 ? '#f59e0b'
+              : ratio >= 1.0 ? '#10b981'
+              : ratio >= 0.5 ? '#6c63ff'
+              :                '#ef4444';
+  el.style.background = color;
+}
+
+function ratioLabel(ratio) {
+  return (ratio >= 1 ? '+' : '') + Math.round((ratio - 1) * 100) + '%';
+}
+
+// ── Main analyse ─────────────────────────────────────────────────────────────
+async function analyse() {
+  const num = document.getElementById('numInput').value.toUpperCase().replace(/[^0-9A-Z]/g, '').trim();
+  const err = document.getElementById('errMsg');
+  err.style.display = 'none';
+
+  if (!/^(\d{4,5}|[A-Z0-9]{3}\d{5})$/.test(num)) {
+    err.textContent = 'Enter a 4- or 5-digit number, or a series+5digit code (e.g. 83K90495).';
+    err.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const res  = await fetch(`/api/score?number=${num}`);
+    const data = await res.json();
+
+    if (data.error) {
+      err.textContent = data.error; err.style.display = 'block'; return;
+    }
+
+    render(data);
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(e) {
+    err.textContent = 'Server error — make sure the backend is running.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyse';
+  }
+}
+
+function render(d) {
+  updateGauge(d.composite_score);
+
+  const isFirst = d.prize_type === 'first';
+
+  // Component bars
+  if (isFirst) {
+    document.getElementById('lDigit').textContent = 'Digit Hotness';
+    document.getElementById('lDecay').textContent = 'Series Frequency';
+    document.getElementById('lTier').textContent  = 'Series Recency';
+    setBar('bDigit', d.digit_ratio);
+    setBar('bDecay', d.series_freq_ratio);
+    setBar('bTier',  d.series_decay_ratio);
+    document.getElementById('cDigit').textContent = ratioLabel(d.digit_ratio);
+    document.getElementById('cDecay').textContent = ratioLabel(d.series_freq_ratio);
+    document.getElementById('cTier').textContent  = ratioLabel(d.series_decay_ratio);
+    document.getElementById('kAppear').textContent = 'Series draws';
+  } else {
+    document.getElementById('lDigit').textContent = 'Digit Hotness';
+    document.getElementById('lDecay').textContent = 'Recency Frequency';
+    document.getElementById('lTier').textContent  = 'Historical Frequency';
+    setBar('bDigit', d.digit_ratio);
+    setBar('bDecay', d.avg_decay_ratio);
+    setBar('bTier',  d.avg_tier_ratio);
+    document.getElementById('cDigit').textContent = ratioLabel(d.digit_ratio);
+    document.getElementById('cDecay').textContent = ratioLabel(d.avg_decay_ratio);
+    document.getElementById('cTier').textContent  = ratioLabel(d.avg_tier_ratio);
+    document.getElementById('kAppear').textContent = 'Times drawn';
+  }
+
+  // Stats
+  document.getElementById('sAppear').textContent = d.appearances || '0';
+  document.getElementById('sLast').textContent   = d.last_seen   || 'Never';
+  document.getElementById('sGap').textContent    = d.gap_sessions != null ? d.gap_sessions : '—';
+
+  // Digit heatmap
+  const grid = document.getElementById('digitGrid');
+  grid.innerHTML = '';
+  (d.digit_breakdown || []).forEach(pos => {
+    const sign = pos.delta_pct >= 0 ? '+' : '';
+    const cell = document.createElement('div');
+    cell.className = `digit-cell ${pos.status === 'hot' ? 'hot' : pos.status === 'cold' ? 'cold' : 'neutral'}`;
+    cell.innerHTML = `
+      <div class="pos-label">Position ${pos.position + 1}</div>
+      <div class="digit-num">${pos.digit}</div>
+      <div class="delta">${sign}${pos.delta_pct}%</div>
+      <div class="status-label">${pos.status}</div>`;
+    grid.appendChild(cell);
+  });
+
+  // Per-prize table
+  const tbody = document.getElementById('prizeTable');
+  tbody.innerHTML = '';
+  const head = document.getElementById('prizeTableHead');
+  const pp = d.per_prize || {};
+
+  if (isFirst) {
+    document.getElementById('prizeTableTitle').textContent = 'Prize Breakdown';
+    head.innerHTML = '<th>Prize</th><th>Score</th><th>Digit</th><th>Series Freq</th><th>Series Recency</th>';
+    Object.entries(pp).sort().forEach(([p, v]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge badge-${p}">${v.prize_label}</span></td>
+        <td><strong>${v.score}</strong></td>
+        <td>${ratioLabel(v.digit_ratio)}</td>
+        <td>${ratioLabel(v.series_ratio)}</td>
+        <td>${ratioLabel(v.series_decay)}</td>`;
+      tbody.appendChild(tr);
+    });
+    // Series rank info row
+    const sb = d.series_breakdown || {};
+    if (sb.known) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td colspan="5" style="color:var(--muted);font-size:.78rem;padding-top:10px">
+          Series <strong style="color:var(--text)">${sb.series}</strong> —
+          rank <strong style="color:var(--text)">#${sb.rank}</strong> of ${sb.total_series} series ·
+          ${sb.appearances} draws vs ${sb.expected} expected
+        </td>`;
+      tbody.appendChild(tr);
+    } else if (sb.series) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td colspan="5" style="color:var(--cold);font-size:.78rem;padding-top:10px">
+          Series <strong>${sb.series}</strong> not seen in historical data.
+        </td>`;
+      tbody.appendChild(tr);
+    }
+  } else {
+    document.getElementById('prizeTableTitle').textContent = 'Per-Prize Breakdown';
+    head.innerHTML = '<th>Prize</th><th>Score</th><th>Digit</th><th>Recency</th><th>Freq</th>';
+    Object.entries(pp).sort().forEach(([p, v]) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><span class="badge badge-${p}">${v.prize_label}</span></td>
+        <td><strong>${v.score}</strong></td>
+        <td>${ratioLabel(v.digit_ratio)}</td>
+        <td>${ratioLabel(v.decay_ratio)}</td>
+        <td>${ratioLabel(v.tier_ratio)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // History
+  const hist = document.getElementById('histList');
+  if (isFirst) {
+    document.getElementById('histTitle').textContent = 'Series 1st Prize History';
+    const sh = d.series_history || [];
+    if (sh.length === 0) {
+      hist.innerHTML = '<p style="color:var(--muted);font-size:.85rem">No recorded appearances.</p>';
+    } else {
+      hist.innerHTML = sh.map(h => `
+        <div class="history-item">
+          <span class="h-date">${h.date}</span>
+          <span class="h-time">${h.draw_time}</span>
+          <span class="h-prize" style="font-family:monospace;letter-spacing:1px">${d.series}${h.winning_number}</span>
+        </div>`).join('');
+    }
+  } else {
+    document.getElementById('histTitle').textContent = 'Recent Appearances';
+    if (!d.history || d.history.length === 0) {
+      hist.innerHTML = '<p style="color:var(--muted);font-size:.85rem">No recorded appearances.</p>';
+    } else {
+      hist.innerHTML = d.history.map(h => `
+        <div class="history-item">
+          <span class="h-date">${h.date}</span>
+          <span class="h-time">${h.draw_time}</span>
+          <span class="h-prize"><span class="badge badge-${h.prize_rank}">${h.prize_label}</span></span>
+        </div>`).join('');
+    }
+  }
+}
+
+// ── Load hot numbers ─────────────────────────────────────────────────────────
+async function loadHotNumbers() {
+  try {
+    const res  = await fetch('/api/hot-numbers?prize=5&top=20');
+    const data = await res.json();
+    const grid = document.getElementById('hotGrid');
+    grid.innerHTML = data.map(n => `
+      <div class="hot-chip" onclick="fillAndAnalyse('${n.number}')">
+        <span class="cn">${n.number}</span>
+        <span class="cs">score ${n.score}</span>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('hotGrid').innerHTML =
+      '<span style="color:var(--muted);font-size:.85rem">Unavailable</span>';
+  }
+}
+
+function fillAndAnalyse(num) {
+  document.getElementById('numInput').value = num;
+  analyse();
+}
+
+loadHotNumbers();
+
+async function loadStats() {
+  try {
+    const s = await (await fetch('/api/stats')).json();
+    const fmt = d => {
+      const [y,m,day] = d.split('-');
+      return new Date(y,m-1,day).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+    };
+    document.getElementById('statsLine').textContent =
+      `Evidence-based scoring from ${s.sessions_total} draws · ${fmt(s.date_range.first)} – ${fmt(s.date_range.last)}`;
+  } catch(_) {}
+}
+loadStats();
+</script>
+</body>
+</html>

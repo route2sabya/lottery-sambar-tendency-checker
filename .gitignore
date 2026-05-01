@@ -1,0 +1,14 @@
+# Virtual environment
+.venv/
+
+# Downloaded PDFs — too large for git (509 MB)
+input_history/pdfs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs and local env
+*.log
+.env
