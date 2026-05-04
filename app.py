@@ -81,7 +81,7 @@ def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://lottery-sambad-checker.fly.dev/</loc>
+    <loc>https://lottery-sambad-checker.rentowise.in/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
@@ -91,7 +91,7 @@ def sitemap():
 
 @app.route("/robots.txt")
 def robots():
-    txt = "User-agent: *\nAllow: /\nSitemap: https://lottery-sambad-checker.fly.dev/sitemap.xml"
+    txt = "User-agent: *\nAllow: /\nSitemap: https://lottery-sambad-checker.rentowise.in/sitemap.xml"
     return Response(txt, mimetype="text/plain")
 
 
