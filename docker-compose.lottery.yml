@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  lottery:
+    build: .
+    container_name: lottery_app
+    restart: always
+    volumes:
+      - ./input_history:/app/input_history
+    expose:
+      - "8080"
+    networks:
+      - rentowise_net
+
+networks:
+  rentowise_net:
+    external: true
+    name: app_default
