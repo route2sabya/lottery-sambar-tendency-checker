@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.lottery.update</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/sabyasachipurkayastha/proj_claude/lottery_by_chance/run_update.sh</string>
+    </array>
+
+    <!-- Run weekly: Sunday 03:00 IST (staggered 1h after rentvscommute) -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/sabyasachipurkayastha/proj_claude/lottery_by_chance/logs/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/sabyasachipurkayastha/proj_claude/lottery_by_chance/logs/launchd_err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/sabyasachipurkayastha</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/sabyasachipurkayastha/proj_claude/lottery_by_chance</string>
+</dict>
+</plist>

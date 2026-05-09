@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Lottery Sambad {{ label }} Results & Hot Numbers{% endblock %}
+{% block meta_desc %}Latest Lottery Sambad {{ label }} draw results and hot numbers. Evidence-based scoring from {{ sessions_total }} historical draws.{% endblock %}
+
+{% block content %}
+<div class="nav-pills">
+  {% for s, lbl in draw_labels.items() %}
+  <a href="/draw/{{ s }}" class="nav-pill {% if s == slug %}active{% endif %}">{{ lbl }}</a>
+  {% endfor %}
+</div>
+
+<div class="page-title">{{ label }} Draw</div>
+<div class="page-sub">Recent results and hot numbers for the {{ draw_time }} Lottery Sambad draw.</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h3>Recent {{ label }} results</h3>
+    {% for r in recent_results %}
+    <div style="margin-bottom:14px">
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;font-weight:600">
+        <a href="/results/{{ r.date }}">{{ r.date }}</a>
+      </div>
+      {% for e in r.entries[:6] %}
+      <div style="display:flex;gap:8px;align-items:center;padding:3px 0;font-size:.82rem">
+        <span class="badge badge-{{ e.prize_rank }}">{{ e.prize_label }}</span>
+        {% if e.series %}<span style="color:var(--muted);font-size:.75rem">{{ e.series }}</span>{% endif %}
+        <span style="font-family:monospace;letter-spacing:1px">
+          <a href="/number/{{ e.winning_number }}" style="color:var(--text)">{{ e.winning_number }}</a>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% if not loop.last %}<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">{% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h3>Hot numbers (5th prize)</h3>
+    <div class="hot-grid">
+      {% for n in hot %}
+      <div class="hot-chip">
+        <a href="/number/{{ n.number }}">{{ n.number }}</a>
+        <span class="cs">score {{ n.score }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:12px">
+      {% for p, name in prize_names.items() %}
+      <a href="/hot/prize-{{ p }}" class="tag">{{ name }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="disclaimer">
+  <strong>Important:</strong> Historical frequency patterns do not predict future lottery outcomes. Lottery draws are designed to be random. Play responsibly.
+</div>
+{% endblock %}

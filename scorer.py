@@ -62,6 +62,7 @@ class LotteryScorer:
         self._build_history(rows)
         self._build_expected_decay()
         self._build_series_tables(rows)
+        self._build_date_map(rows)
 
     def _build_digit_tables(self, rows):
         """pos_prob[digit_len][pos][digit] = observed probability"""
@@ -160,6 +161,27 @@ class LotteryScorer:
         geo_sum  = (1 - math.exp(-DECAY_K * self.N)) / (1 - math.exp(-DECAY_K))
         self.expected_series_decay = geo_sum / n_series
         self.n_unique_series = n_series
+
+    def _build_date_map(self, rows):
+        """date_map[date][draw_time] = sorted list of result dicts"""
+        dm = defaultdict(lambda: defaultdict(list))
+        for r in rows:
+            dm[r["date"]][r["draw_time"]].append({
+                "prize_rank":    r["prize_rank"],
+                "prize_label":   r["prize_label"],
+                "lottery_name":  r["lottery_name"],
+                "series":        r["series"],
+                "winning_number": r["winning_number"],
+            })
+        # Sort entries within each slot by prize rank
+        for date in dm:
+            for dt in dm[date]:
+                dm[date][dt].sort(key=lambda x: x["prize_rank"])
+        self.date_map        = dm
+        self.all_dates       = sorted(dm.keys(), reverse=True)
+        self.draw_times      = sorted({r["draw_time"] for r in rows if r["draw_time"] != "draw_time"})
+        self.all_numbers     = sorted(self.history_map.keys())
+        self.all_series_list = sorted(self.series_freq.keys())
 
     def _build_expected_decay(self):
         """

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Lottery Sambad Number {{ number }} — Tendency Score {{ data.composite_score }}{% endblock %}
+{% block meta_desc %}Number {{ number }} has appeared {{ data.appearances }} times in Lottery Sambad. Tendency score: {{ data.composite_score }}/300. Last seen: {{ data.last_seen or 'Never' }}.{% endblock %}
+
+{% block content %}
+<div class="page-title">Number {{ number }}</div>
+<div class="page-sub">
+  {% if data.prize_type == 'first' %}1st Prize (series + 5-digit) analysis
+  {% elif data.digit_length == 4 %}4-digit number — 3rd, 4th & 5th Prize analysis
+  {% else %}5-digit number — 1st & 2nd Prize analysis{% endif %}
+  · based on {{ data.sessions_total }} draws
+</div>
+
+<div class="grid-2">
+  <div class="card" style="text-align:center;padding:28px 20px">
+    <h3>Tendency Score</h3>
+    <div class="score-big {% if data.composite_score >= 150 %}score-hot{% elif data.composite_score >= 115 %}score-warm{% elif data.composite_score >= 85 %}score-avg{% else %}score-cold{% endif %}">
+      {{ data.composite_score }}
+    </div>
+    <div style="color:var(--muted);font-size:.85rem;margin-top:6px">
+      {% if data.composite_score >= 150 %}🔥 Hot
+      {% elif data.composite_score >= 115 %}↑ Above average
+      {% elif data.composite_score >= 85 %}→ Average
+      {% else %}↓ Below average{% endif %}
+    </div>
+    <div style="color:var(--neutral);font-size:.75rem;margin-top:4px">Baseline (average) = 100</div>
+  </div>
+
+  <div class="card">
+    <h3>Key Stats</h3>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-val">{{ data.appearances }}</div>
+        <div class="stat-key">{% if data.prize_type == 'first' %}Series draws{% else %}Times drawn{% endif %}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ data.last_seen or 'Never' }}</div>
+        <div class="stat-key">Last seen</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ data.gap_sessions if data.gap_sessions is not none else '—' }}</div>
+        <div class="stat-key">Draws ago</div>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-val">{{ (data.digit_ratio * 100)|round|int }}%</div>
+        <div class="stat-key">Digit hotness</div>
+      </div>
+      {% if data.prize_type != 'first' %}
+      <div class="stat">
+        <div class="stat-val">{{ (data.avg_decay_ratio * 100)|round|int }}%</div>
+        <div class="stat-key">Recency</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if data.digit_breakdown %}
+<div class="card" style="margin-top:16px">
+  <h3>Digit Position Analysis</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+    {% for pos in data.digit_breakdown %}
+    <div style="border-radius:10px;padding:14px 10px;text-align:center;width:80px;border:1px solid var(--border);
+      {% if pos.status == 'hot' %}background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4)
+      {% elif pos.status == 'cold' %}background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4)
+      {% else %}background:rgba(107,114,128,.08){% endif %}">
+      <div style="font-size:.65rem;color:var(--muted);margin-bottom:4px">Position {{ loop.index }}</div>
+      <div style="font-size:1.6rem;font-weight:800;
+        {% if pos.status == 'hot' %}color:var(--hot)
+        {% elif pos.status == 'cold' %}color:var(--cold)
+        {% else %}color:var(--text){% endif %}">{{ pos.digit }}</div>
+      <div style="font-size:.72rem;margin-top:4px;
+        {% if pos.status == 'hot' %}color:var(--hot)
+        {% elif pos.status == 'cold' %}color:var(--cold)
+        {% else %}color:var(--neutral){% endif %}">
+        {{ '+' if pos.delta_pct >= 0 else '' }}{{ pos.delta_pct }}%
+      </div>
+      <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;color:var(--muted)">{{ pos.status }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="grid-2" style="margin-top:16px">
+  <div class="card">
+    <h3>Per-Prize Breakdown</h3>
+    <table>
+      <thead><tr><th>Prize</th><th>Score</th></tr></thead>
+      <tbody>
+        {% for p, v in data.per_prize.items()|sort %}
+        <tr>
+          <td><span class="badge badge-{{ p }}">{{ v.prize_label }}</span></td>
+          <td><strong>{{ v.score }}</strong></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Recent Appearances</h3>
+    <div class="history-list">
+      {% set history = data.series_history if data.prize_type == 'first' else data.history %}
+      {% if history %}
+        {% for h in history %}
+        <div class="history-item">
+          <span class="h-date"><a href="/results/{{ h.date }}">{{ h.date }}</a></span>
+          <span class="h-time">{{ h.draw_time }}</span>
+          {% if data.prize_type != 'first' %}
+          <span class="h-prize"><span class="badge badge-{{ h.prize_rank }}">{{ h.prize_label }}</span></span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      {% else %}
+        <p style="color:var(--muted);font-size:.85rem">No appearances recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px">
+  <a href="/" class="btn">Check another number</a>
+</div>
+
+<div class="disclaimer" style="margin-top:20px">
+  <strong>Important:</strong> Tendency scores are based on historical frequency — they do not predict future lottery results. Lottery draws are random. Play responsibly.
+</div>
+{% endblock %}

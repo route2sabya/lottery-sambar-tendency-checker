@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Lottery Sambad Series {{ code }} — 1st Prize Tendency Analysis{% endblock %}
+{% block meta_desc %}Series {{ code }} has won Lottery Sambad 1st Prize {{ appearances }} times. Tendency score: {{ score }}/300. Full win history and analysis.{% endblock %}
+
+{% block content %}
+<div class="page-title">Series {{ code }}</div>
+<div class="page-sub">1st Prize series analysis — {{ appearances }} recorded wins across {{ sessions_total }} draws.</div>
+
+<div class="grid-2">
+  <div class="card" style="text-align:center;padding:28px 20px">
+    <h3>Tendency Score</h3>
+    <div class="score-big {% if score >= 150 %}score-hot{% elif score >= 115 %}score-warm{% elif score >= 85 %}score-avg{% else %}score-cold{% endif %}">
+      {{ score }}
+    </div>
+    <div style="color:var(--muted);font-size:.85rem;margin-top:6px">
+      {% if score >= 150 %}🔥 Hot series
+      {% elif score >= 115 %}↑ Above average
+      {% elif score >= 85 %}→ Average
+      {% else %}↓ Below average{% endif %}
+    </div>
+    <div style="color:var(--neutral);font-size:.75rem;margin-top:4px">Baseline (average) = 100</div>
+  </div>
+
+  <div class="card">
+    <h3>Series Stats</h3>
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-val">{{ appearances }}</div>
+        <div class="stat-key">1st Prize wins</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ last_won or '—' }}</div>
+        <div class="stat-key">Last won</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ gap if gap is not none else '—' }}</div>
+        <div class="stat-key">Draws since last win</div>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-val">{{ (freq_ratio * 100)|round|int }}%</div>
+        <div class="stat-key">vs expected frequency</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ n_series }}</div>
+        <div class="stat-key">Total known series</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3>1st Prize Win History ({{ history|length }} recorded)</h3>
+  {% if history %}
+  <div class="history-list">
+    {% for h in history %}
+    <div class="history-item">
+      <span class="h-date"><a href="/results/{{ h.date }}">{{ h.date }}</a></span>
+      <span class="h-time">{{ h.draw_time }}</span>
+      <span style="font-family:monospace;letter-spacing:1px">
+        <a href="/number/{{ h.winning_number }}" style="color:var(--text)">{{ code }}{{ h.winning_number }}</a>
+      </span>
+      <span style="color:var(--muted);font-size:.78rem">{{ h.lottery }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p style="color:var(--muted);font-size:.85rem">No recorded appearances.</p>
+  {% endif %}
+</div>
+
+<div class="disclaimer">
+  <strong>Important:</strong> Series frequency analysis is based on historical data only. Lottery draws are random and past wins do not predict future outcomes. Play responsibly.
+</div>
+{% endblock %}
