@@ -12,3 +12,9 @@ __pycache__/
 # Logs and local env
 *.log
 .env
+
+# macOS metadata
+.DS_Store
+
+# Local launchd config — machine-specific, not for repo
+*.plist
